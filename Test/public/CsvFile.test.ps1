@@ -47,3 +47,19 @@ function Test_GetCsvFile_Default_Id{
     Assert-AreEqual -Expected "Value3_$i" -Presented $record2.Column3
 }
 
+function Test_GetCsvFile_Integration{
+
+    # Assert-SkipTest -Message "Integration test not implemented"
+
+    Mock_Database -resetDatabase
+    $databaseRoot = Get-Mock_DatabaseStore
+    $csvPath = "~/Downloads/kk2.csv"
+
+    Assert-IsTrue -Condition (Test-Path -Path $csvPath)
+
+    $result = Import-CsvFile -Path $csvPath -KeyColumn "AccountId"
+
+    Assert-NotImplemented
+
+}
+
