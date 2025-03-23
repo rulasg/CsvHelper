@@ -49,17 +49,21 @@ function Test_GetCsvFile_Default_Id{
 
 function Test_GetCsvFile_Integration{
 
-    # Assert-SkipTest -Message "Integration test not implemented"
+    Assert-SkipTest -Message "Integration test not implemented"
 
     Mock_Database -resetDatabase
     $databaseRoot = Get-Mock_DatabaseStore
-    $csvPath = "~/Downloads/kk2.csv"
+    $csvPath = "~/Downloads/data.csv"
 
     Assert-IsTrue -Condition (Test-Path -Path $csvPath)
 
-    $result = Import-CsvFile -Path $csvPath -KeyColumn "AccountId"
+    $result = Import-CsvFile -Path $csvPath -KeyColumn "Account Id"
 
-    Assert-NotImplemented
+    Assert-AreEqual -Expected "2F84A5E1110A1AC840178DF2FDFEF080" -Presented $result
+
+    $dbPath = Invoke-CsvHelperGetDbRootPath
+
+    Assert-ItemExist -Path $($dbPath | Join-Path -ChildPath $result.json)
 
 }
 
