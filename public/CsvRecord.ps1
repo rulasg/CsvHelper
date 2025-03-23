@@ -51,15 +51,8 @@ function Get-CsvRecord{
     $record = $db.$Id
     
     if (-Not $record) {
-        Write-Error "Record not found for ID: $Id in Csv $Path"
-        return
-    }
-
-    $record = $db.$Id
-
-    if (-Not $record) {
-        Write-Error "Record not found for ID: $Id in Csv $Path"
-        return
+        # Write-Error "Record not found for ID: $Id in Csv $Path"
+        return $null
     }
 
     return $record

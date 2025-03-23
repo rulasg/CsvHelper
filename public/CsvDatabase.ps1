@@ -70,6 +70,10 @@ function Save-CsvDatabase{
     foreach ($row in $Data) {
         $keyValue = $row.$KeyColumn
 
+        if (-not $keyValue) {
+            throw "Key column '$KeyColumn' not found in row: $row"
+        }
+
         if (-not $CsvDatabase.ContainsKey($keyValue)) {
             $CsvDatabase[$keyValue] = @{}
         }

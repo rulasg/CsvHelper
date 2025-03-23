@@ -1,7 +1,7 @@
 function New-TestCsvFile {
     param (
-        [int]$NumRows = 10,
-        [string]$Path = "test.csv"
+        [Parameter()][int]$NumRows = 10,
+        [Parameter()][string]$Path = "test.csv"
     )
 
     $data = @()
@@ -18,4 +18,4 @@ function New-TestCsvFile {
     $data | Export-Csv -Path $Path -NoTypeInformation
 
     return $Path
-}
+} Export-ModuleMember -Function New-TestCsvFile
