@@ -2,16 +2,17 @@
 # INVOKE COMMAND MOCK
 #
 # This includes help commands to mock invokes in a test module
-# You need to set the following variables
-# $MODULE_INVOKATION_TAG : name of the module that you are testing. This needs to match with the Tag used in the module you are testing.
-# $MODULE_INVOKATION_TAG_MOCK : Tag for the mock functions on the testing moodule you are loading this include in
-# MOCK_PATH : path to the mocks folder. This is where the mock files will be saved and loaded from.
 #
-# Sample:
-# $MODULE_INVOKATION_TAG = "SfHelperModule"
-# $MODULE_INVOKATION_TAG_MOCK = "SfHelperModule-Mock"
-# $MOCK_PATH = $PSScriptRoot | Split-Path -Parent | Join-Path -ChildPath 'private' -AdditionalChildPath 'mocks'
+# THIS INCLUDE REQURED module.helper.ps1
+if(-not $MODULE_NAME){ throw "Missing MODULE_NAME varaible initialization. Check for module.helerp.ps1 file." }
+if(-not $MODULE_ROOT_PATH){ throw "Missing MODULE_ROOT_PATH varaible initialization. Check for module.helerp.ps1 file." }
 
+
+$testRootPath = $MODULE_ROOT_PATH | Join-Path -ChildPath 'Test'
+$MOCK_PATH = $testRootPath | Join-Path -ChildPath 'private' -AdditionalChildPath 'mocks'
+
+$MODULE_INVOKATION_TAG = "$($MODULE_NAME)Module"
+$MODULE_INVOKATION_TAG_MOCK = "$($MODULE_INVOKATION_TAG)_Mock"
 
 function Set-InvokeCommandMock{
     [CmdletBinding()]
@@ -21,7 +22,7 @@ function Set-InvokeCommandMock{
     )
 
     InvokeHelper\Set-InvokeCommandAlias -Alias $Alias -Command $Command -Tag $MODULE_INVOKATION_TAG_MOCK
-} 
+}
 
 function Reset-InvokeCommandMock{
     [CmdletBinding()]
@@ -32,6 +33,10 @@ function Reset-InvokeCommandMock{
 
     # Disable all dependecies of the library
     Disable-InvokeCommandAlias -Tag $MODULE_INVOKATION_TAG
+
+    # Clear Enviroment variables used
+    Get-Variable -scope Global -Name "$($MODULE_INVOKATION_TAG_MOCK)_*"  | Remove-Variable -Force -Scope Global
+
 } Export-ModuleMember -Function Reset-InvokeCommandMock
 
 function Enable-InvokeCommandAliasModule{
@@ -52,6 +57,19 @@ function MockCall{
     Set-InvokeCommandMock -Alias $command -Command "Get-MockFileContent -filename $filename"
 }
 
+function MockCallAsync{
+    param(
+        [Parameter(Position=0)][string] $command,
+        [Parameter(Position=1)][string] $filename
+    )
+
+    Assert-MockFileNotfound $fileName
+
+    $moduleTest = $PSScriptRoot | Split-Path -Parent | Convert-Path
+
+    Set-InvokeCommandMock -Alias $command -Command "Import-Module $moduleTest ; Get-MockFileContent -filename $filename"
+}
+
 function MockCallJson{
     param(
         [Parameter(Position=0)][string] $command,
@@ -62,6 +80,20 @@ function MockCallJson{
     Assert-MockFileNotfound $fileName
 
     Set-InvokeCommandMock -Alias $command -Command "Get-MockFileContentJson -filename $filename"
+}
+
+function MockCallJsonAsync{
+    param(
+        [Parameter(Position=0)][string] $command,
+        [Parameter(Position=1)][string] $filename
+
+    )
+
+    Assert-MockFileNotfound $fileName
+
+    $moduleTest = $PSScriptRoot | Split-Path -Parent | Convert-Path
+
+    Set-InvokeCommandMock -Alias $command -Command "Import-Module $moduleTest ; Get-MockFileContentJson -filename $filename"
 }
 
 function Get-MockFileFullPath{
@@ -112,6 +144,21 @@ function MockCallToString{
     Set-InvokeCommandMock -Alias $command -Command $outputstring
 }
 
+
+function MockCallToObject{
+    param(
+        [Parameter(Position=0)][string] $command,
+        [Parameter(Position=1)][object] $OutObject
+    )
+
+    $random = [System.Guid]::NewGuid().ToString()
+    $varName = "$MODULE_INVOKATION_TAG_MOCK" + "_$random"
+
+    Set-Variable -Name $varName -Value $OutObject -Scope Global
+
+    Set-InvokeCommandMock -Alias $command -Command "(Get-Variable -Name $varName -Scope Global).Value"
+}
+
 function MockCallToNull{
     param(
         [Parameter(Position=0)][string] $command
@@ -133,6 +180,21 @@ function MockCallThrow{
     Set-InvokeCommandMock -Alias $command -Command $mockCommand
 }
 
+function MockCallExpression{
+    param(
+        [Parameter(Position=0)][string] $command,
+        [Parameter(Position=1)][string] $expression
+    )
+
+    $mockCommand = @'
+    Invoke-Expression -Command '{expression}'
+'@
+    $mockCommand = $mockCommand -replace "{expression}", $expression
+
+    Set-InvokeCommandMock -Alias $command -Command $expression
+}
+
+
 function Save-InvokeAsMockFile{
     param(
         [Parameter(Mandatory=$true)] [string]$Command,
@@ -144,8 +206,8 @@ function Save-InvokeAsMockFile{
 
     $result = Invoke-Expression -Command $Command
 
-    $json = $result | ConvertTo-Json -Depth 100 
-    
+    $json = $result | ConvertTo-Json -Depth 100
+
     $json | Out-File -FilePath $filePath
 
     Write-Host $FileName
@@ -186,3 +248,4 @@ function Assert-MockFileNotfound{
         throw "File not found or wrong case name. Expected[ $filename ] - Found[$( $file.name )]"
     }
 }
+
