@@ -28,7 +28,7 @@ function Get-CsvRecord{
         [Parameter(Mandatory, ParameterSetName = "Path", Position = 0)] [string]$Path,
         [Parameter(ParameterSetName = "Path", Position = 1)] [string]$KeyColumn = "Id",
         [Parameter(Mandatory, ParameterSetName = "CsvKey", Position = 1)] [string]$Key,
-        [Parameter(Mandatory, Position = 3)] [string]$Id
+        [Parameter(Position = 3)] [string]$Id
     )
 
     # resolve CsvKey if not provided
@@ -48,12 +48,17 @@ function Get-CsvRecord{
         throw "Database not found for Key[$Key] Path[$Path]"
     }
 
-    $record = $db.$Id
-    
-    if (-Not $record) {
-        # Write-Error "Record not found for ID: $Id in Csv $Path"
-        return $null
+    # If $Id return just the record, if not all the records in the database
+    if(-Not[string]::IsNullOrWhiteSpace($Id)){
+        
+        $record = $db.$Id
+        if (-Not $record) {
+            throw "Record not found for ID: $Id in Csv $Path"
+        }
+        return $record
+    } else {
+        
+        return $db.Values
     }
 
-    return $record
 } Export-ModuleMember -Function Get-CsvRecord
