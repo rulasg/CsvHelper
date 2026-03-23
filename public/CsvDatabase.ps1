@@ -17,16 +17,7 @@ function Get-CsvDatabaseKey {
     [CmdletBinding()]
     param (
 
-        [Parameter(Mandatory=$true,
-                   Position=0,
-                   ParameterSetName="ParameterSetName",
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true,
-                   HelpMessage="Path to one or more locations.")]
-        [Alias("PSPath")]
-        [ValidateNotNullOrEmpty()]
-        [string[]]
-        $Path,
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")][ValidateNotNullOrEmpty()][string[]]$Path,
         [Parameter(Mandatory)][string]$KeyColumn
     )
 
@@ -43,9 +34,7 @@ function Get-CsvDatabaseKey {
             $item = Get-Item -Path $Path
             
             $lastmodified = $item.LastWriteTime
-            
             $lastmodified = $lastmodified.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-            
             $path = $item | Convert-Path
 
             $key = "$path - $KeyColumn - $lastmodified"
@@ -83,8 +72,11 @@ function Save-CsvDatabase{
         }
     }
 
+    $script:CsvDatabase.$key = $null
     Save-DatabaseKey -Key $key -Value $CsvDatabase
 }
+
+$script:CsvDatabase = @{}
 
 function Get-CsvDatabase{
     [CmdletBinding()]
@@ -92,8 +84,15 @@ function Get-CsvDatabase{
         [Parameter(Mandatory, Position = 0)] [string]$Key
     )
 
-    $ret = Get-DatabaseKey -Key $key
+    $cache = $script:CsvDatabase.$Key
 
+    if($null -eq $cache -or $cache.Length -eq 0) {
+        $ret = Get-DatabaseKey -Key $key
+
+        $script:CsvDatabase.$key = $ret
+    } else {
+        $ret = $cache
+    }
     return $ret
 
 }
